@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo Pastel - Editable</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Pacifico&family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+        --bg-main: #ffeef8;
+        --bg-card: #ffffff;
+        --primary: #f472b6;
+        --primary-dark: #ec4899;
+        --secondary: #fda4af;
+        --accent: #c084fc;
+        --text-main: #4a044e;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #ffeef8 0%, #fdf2f8 50%, #fce7f3 100%);
+        color: var(--text-main);
+        min-height: 100vh;
+    }
+
+    .brush-font {
+        font-family: 'Dancing Script', cursive;
+    }
+
+    .custom-font {
+        font-family: 'CustomFont', 'Dancing Script', cursive;
+    }
+
+    .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .editable:hover {
+        outline: 2px dashed var(--primary);
+        outline-offset: 2px;
+        cursor: text;
+    }
+
+    .editable:focus {
+        outline: 2px solid var(--primary);
+        background: rgba(244, 114, 182, 0.05);
+    }
+
+    .product-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(236, 72, 153, 0.2), 0 10px 10px -5px rgba(236, 72, 153, 0.1);
+    }
+
+    .modal-backdrop {
+        backdrop-filter: blur(8px);
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-content {
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .btn-pastel {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        transition: all 0.3s ease;
+    }
+
+    .btn-pastel:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(244, 114, 182, 0.3);
+    }
+
+    .category-badge {
+        background: linear-gradient(135deg, #fbcfe8 0%, #fda4af 100%);
+    }
+
+    .admin-mode .admin-only {
+        display: block !important;
+    }
+
+    .admin-only {
+        display: none;
+    }
+
+    .cart-badge {
+        animation: bounce 0.5s ease;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+
+    .thumbnail {
+        transition: all 0.2s ease;
+        opacity: 0.6;
+    }
+
+    .thumbnail:hover, .thumbnail.active {
+        opacity: 1;
+        border: 2px solid var(--primary);
+        transform: scale(1.1);
+    }
+
+    input[type="range"] {
+        accent-color: var(--primary);
+    }
+
+    .embed-grid iframe {
+        width: 100%;
+        aspect-ratio: 9/16;
+        border-radius: 1rem;
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #fce7f3;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 4px;
+    }
+
+    .out-of-stock-overlay {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
+    }
+</style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="glass sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <h1 id="siteTitle" class="brush-font text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 editable" contenteditable="false">Mi Tienda Pastel</h1>
+                    <p id="companyName" class="text-sm text-pink-600 editable mt-1" contenteditable="false">Tu slogan aquí</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Font Size Control Admin Only -->
+                    <div class="admin-only items-center gap-2 glass px-3 py-2 rounded-full">
+                        <i class="fa-solid fa-text-height text-pink-500"></i>
+                        <input type="range" id="titleSize" min="24" max="80" value="48" class="w-24">
+                    </div>
+
+                    <!-- Font Upload Admin Only -->
+                    <button id="uploadFontBtn" class="admin-only glass px-4 py-2 rounded-full hover:bg-white transition">
+                        <i class="fa-solid fa-font text-pink-500"></i>
+                    </button>
+                    <input type="file" id="fontUpload" accept=".ttf,.woff,.woff2" class="hidden">
+
+                    <!-- Cart Button -->
+                    <button id="cartBtn" class="relative glass px-4 py-3 rounded-full hover:bg-white transition">
+                        <i class="fa-solid fa-cart-shopping text-pink-500 text-xl"></i>
+                        <span id="cartCount" class="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center cart-badge hidden">0</span>
+                    </button>
+
+                    <!-- Admin Toggle -->
+                    <button id="adminToggle" class="btn-pastel text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+                        <i class="fa-solid fa-lock"></i> <span id="adminText">Admin</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section with Central Image -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="glass rounded-3xl p-6 md:p-10 shadow-xl">
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h2 id="heroTitle" class="brush-font text-3xl md:text-4xl font-bold text-pink-600 mb-4 editable" contenteditable="false">Bienvenida a tu catálogo</h2>
+                    <div id="heroDesc" class="text-gray-700 space-y-2 editable" contenteditable="false">
+                        <p>Descubre nuestra colección exclusiva de productos seleccionados con amor.</p>
+                        <p>Envíos a todo el país. Pagos seguros. Calidad garantizada.</p>
+                    </div>
+                    <div class="admin-only mt-4">
+                        <label class="text-sm text-gray-600 block mb-2">Tamaño de imagen:</label>
+                        <input type="range" id="heroImageSize" min="200" max="600" value="400" class="w-full">
+                    </div>
+                </div>
+                <div class="relative">
+                    <img id="heroImage" src="https://images.unsplash.com/photo-1560472355-536de3962603?w=600&h=400&fit=crop" alt="Imagen central" class="rounded-2xl shadow-2xl w-full object-cover" style="max-width: 400px; margin: 0 auto;">
+                    <div class="admin-only absolute top-2 right-2">
+                        <button id="changeHeroImage" class="bg-white/90 hover:bg-white px-4 py-2 rounded-full shadow-lg text-sm">
+                            <i class="fa-solid fa-image text-pink-500"></i> Cambiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Embeds 4x4 Grid -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="brush-font text-3xl font-bold text-pink-600">
+                <i class="fa-brands fa-instagram text-pink-500"></i> Síguenos
+            </h2>
+            <button id="addEmbedBtn" class="admin-only btn-pastel text-white px-4 py-2 rounded-full text-sm">
+                <i class="fa-solid fa-plus"></i> Agregar Video
+            </button>
+        </div>
+        <div id="embedGrid" class="embed-grid grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Embeds will be loaded here -->
+        </div>
+    </section>
+
+    <!-- Filters & Categories -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="glass rounded-2xl p-4 shadow-lg">
+            <div class="flex flex-wrap gap-3 items-center">
+                <button class="category-filter active px-6 py-2 rounded-full category-badge font-semibold text-sm" data-category="all">
+                    Todas
+                </button>
+                <div id="categoryFilters" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Grid -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="brush-font text-3xl font-bold text-pink-600">Nuestro Catálogo</h2>
+            <button id="addProductBtn" class="admin-only btn-pastel text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+                <i class="fa-solid fa-plus"></i> Agregar Producto
+            </button>
+        </div>
+        <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Products will be loaded here -->
+        </div>
+        <div id="emptyState" class="hidden text-center py-20">
+            <i class="fa-solid fa-box-open text-6xl text-pink-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">No hay productos aún</p>
+            <p class="text-gray-400 text-sm admin-only">Haz click en "Agregar Producto" para comenzar</p>
+        </div>
+    </section>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/30 flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white p-6 rounded-t-3xl z-10">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold"><i class="fa-solid fa-pen-to-square"></i> <span id="modalTitle">Agregar Producto</span></h3>
+                    <button id="closeModal" class="text-2xl hover:scale-110 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="productForm" class="p-6 space-y-6">
+                <input type="hidden" id="productId">
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Título -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Título del Producto</label>
+                        <input type="text" id="productTitle" required class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                    </div>
+
+                    <!-- Fuente del Título -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Estilo de Letra</label>
+                        <select id="titleFont" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                            <option value="Poppins">Poppins - Modern</option>
+                            <option value="Dancing Script">Dancing Script - Brush</option>
+                            <option value="Pacifico">Pacifico - Script</option>
+                            <option value="CustomFont">Fuente Personalizada</option>
+                        </select>
+                    </div>
+
+                    <!-- Categoría -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+                        <input type="text" id="productCategory" placeholder="Ej: Vestidos, Accesorios" required class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                    </div>
+
+                    <!-- Stock -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Stock Disponible</label>
+                        <input type="number" id="productStock" min="0" value="10" required class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                    </div>
+
+                    <!-- Precio Normal -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Precio Normal</label>
+                        <input type="number" id="priceNormal" step="0.01" min="0" required class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                    </div>
+
+                    <!-- Precio Oferta -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Precio Oferta</label>
+                        <input type="number" id="priceOffer" step="0.01" min="0" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                    </div>
+
+                    <!-- Precio Mayorista -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Precio Mayorista</label>
+                        <input type="number" id="priceWholesale" step="0.01" min="0" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Descripción (soporta HTML y links de imágenes)</label>
+                    <textarea id="productDescription" rows="4" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none" placeholder="Descripción del producto... Podes usar <img src='URL'> para imágenes"></textarea>
+                </div>
+
+                <!-- Links de Media -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Links de Fotos/Videos/GIFs</label>
+                    <p class="text-xs text-gray-500 mb-2">Acepta links de Google, Facebook, Instagram, ImgUr, etc. Uno por línea.</p>
+                    <textarea id="mediaLinks" rows="5" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none font-mono text-sm" placeholder="https://ejemplo.com/foto1.jpg&#10;https://ejemplo.com/video.mp4&#10;https://ejemplo.com/animacion.gif"></textarea>
+                </div>
+
+                <!-- Preview de Media -->
+                <div id="mediaPreview" class="grid grid-cols-4 gap-3"></div>
+
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" class="flex-1 btn-pastel text-white py-4 rounded-xl font-bold text-lg shadow-lg">
+                        <i class="fa-solid fa-save"></i> Guardar Producto
+                    </button>
+                    <button type="button" id="deleteProductBtn" class="hidden px-6 bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div id="productDetailModal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/50 flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <button id="closeDetailModal" class="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white text-gray-700 rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <div class="grid md:grid-cols-2 gap-6 p-6">
+                <!-- Gallery -->
+                <div>
+                    <div class="relative bg-gray-100 rounded-2xl overflow-hidden mb-4 aspect-square">
+                        <div id="mainMediaContainer" class="w-full h-full flex items-center justify-center">
+                            <!-- Main media goes here -->
+                        </div>
+                        <button id="prevMedia" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button id="nextMedia" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div id="thumbnails" class="grid grid-cols-5 gap-2">
+                        <!-- Thumbnails go here -->
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="space-y-4">
+                    <div>
+                        <span id="detailCategory" class="category-badge px-4 py-1 rounded-full text-xs font-semibold"></span>
+                    </div>
+                    <h2 id="detailTitle" class="text-3xl font-bold text-gray-800"></h2>
+                    
+                    <div id="detailPrices" class="space-y-2">
+                        <div id="normalPrice" class="text-2xl font-bold text-gray-800"></div>
+                        <div id="offerPrice" class="text-xl text-pink-600 font-semibold"></div>
+                        <div id="wholesalePrice" class="text-sm text-gray-600"></div>
+                    </div>
+
+                    <div id="detailDescription" class="text-gray-700 prose max-w-none"></div>
+
+                    <div id="stockInfo" class="flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-cubes text-pink-500"></i>
+                        <span id="stockText"></span>
+                    </div>
+
+                    <div class="pt-4 space-y-3">
+                        <button id="addToCartBtn" class="w-full btn-pastel text-white py-4 rounded-xl font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+                        </button>
+                        <button id="editProductBtn" class="admin-only w-full bg-gray-700 hover:bg-gray-800 text-white py-3 rounded-xl font-semibold transition">
+                            <i class="fa-solid fa-pen"></i> Editar Producto
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/30 flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white p-6 rounded-t-3xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold"><i class="fa-solid fa-cart-shopping"></i> Tu Carrito</h3>
+                    <button id="closeCart" class="text-2xl hover:scale-110 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="cartItems" class="p-6 space-y-4">
+                <!-- Cart items go here -->
+            </div>
+
+            <div id="cartEmpty" class="hidden text-center py-12">
+                <i class="fa-solid fa-cart-shopping text-6xl text-pink-200 mb-4"></i>
+                <p class="text-gray-500">Tu carrito está vacío</p>
+            </div>
+
+            <div id="cartFooter" class="sticky bottom-0 bg-white border-t-2 border-pink-100 p-6 rounded-b-3xl">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xl font-semibold text-gray-700">Total:</span>
+                    <span id="cartTotal" class="text-3xl font-bold text-pink-600">$0.00</span>
+                </div>
+                <button id="checkoutBtn" class="w-full btn-pastel text-white py-4 rounded-xl font-bold text-lg shadow-lg">
+                    <i class="fa-solid fa-check"></i> Finalizar Compra
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Embed Modal -->
+    <div id="embedModal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/30 flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-3xl shadow-2xl max-w-lg w-full">
+            <div class="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-6 rounded-t-3xl">
+                <h3 class="text-2xl font-bold">Agregar Video Embed</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="text" id="embedUrl" placeholder="URL de Instagram o TikTok" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none">
+                <div class="flex gap-3">
+                    <button id="saveEmbed" class="flex-1 btn-pastel text-white py-3 rounded-xl font-bold">Guardar</button>
+                    <button id="closeEmbedModal" class="px-6 bg-gray-300 hover:bg-gray-400 rounded-xl font-semibold">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // State Management
+    let isAdmin = false;
+    let products = [];
+    let cart = [];
+    let currentProduct = null;
+    let currentMediaIndex = 0;
+    let embeds = [];
+    let customFontLoaded = false;
+
+    // DOM Elements
+    const adminToggle = document.getElementById('adminToggle');
+    const adminText = document.getElementById('adminText');
+    const addProductBtn = document.getElementById('addProductBtn');
+    const adminModal = document.getElementById('adminModal');
+    const closeModal = document.getElementById('closeModal');
+    const productForm = document.getElementById('productForm');
+    const productsGrid = document.getElementById('productsGrid');
+    const productDetailModal = document.getElementById('productDetailModal');
+    const closeDetailModal = document.getElementById('closeDetailModal');
+    const cartBtn = document.getElementById('cartBtn');
+    const cartModal = document.getElementById('cartModal');
+    const closeCart = document.getElementById('closeCart');
+    const cartCount = document.getElementById('cartCount');
+    const mediaLinks = document.getElementById('mediaLinks');
+    const mediaPreview = document.getElementById('mediaPreview');
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        renderProducts();
+        renderCategories();
+        renderEmbeds();
+        updateCartUI();
+        setupEventListeners();
+        checkAdminPassword();
+    });
+
+    // Data Management with localStorage
+    function saveData() {
+        localStorage.setItem('catalog_products', JSON.stringify(products));
+        localStorage.setItem('catalog_embeds', JSON.stringify(embeds));
+        localStorage.setItem('catalog_hero', document.getElementById('heroImage').src);
+        localStorage.setItem('catalog_title', document.getElementById('siteTitle').textContent);
+        localStorage.setItem('catalog_company', document.getElementById('companyName').textContent);
+    }
+
+    function loadData() {
+        const savedProducts = localStorage.getItem('catalog_products');
+        const savedEmbeds = localStorage.getItem('catalog_embeds');
+        const savedHero = localStorage.getItem('catalog_hero');
+        const savedTitle = localStorage.getItem('catalog_title');
+        const savedCompany = localStorage.getItem('catalog_company');
+
+        if (savedProducts) products = JSON.parse(savedProducts);
+        if (savedEmbeds) embeds = JSON.parse(savedEmbeds);
+        if (savedHero) document.getElementById('heroImage').src = savedHero;
+        if (savedTitle) document.getElementById('siteTitle').textContent = savedTitle;
+        if (savedCompany) document.getElementById('companyName').textContent = savedCompany;
+
+        // Sample data if empty
+        if (products.length === 0) {
+            products = [
+                {
+                    id: Date.now(),
+                    title: 'Vestido Floral Primavera',
+                    titleFont: 'Dancing Script',
+                    category: 'Vestidos',
+                    stock: 5,
+                    priceNormal: 89.99,
+                    priceOffer: 69.99,
+                    priceWholesale: 55.00,
+                    description: 'Hermoso vestido floral perfecto para la primavera. <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=400" style="max-width:200px;border-radius:1rem;margin:10px 0;">',
+                    media: [
+                        'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=600',
+                        'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=600'
+                    ]
+                }
+            ];
+            saveData();
+        }
+
+        if (embeds.length === 0) {
+            embeds = [
+                'https://www.instagram.com/p/C2XgVqXO8xK/embed',
+                'https://www.instagram.com/p/C1gVyLKPB8_/embed'
+            ];
+        }
+    }
+
+    // Event Listeners
+    function setupEventListeners() {
+        adminToggle.addEventListener('click', toggleAdminMode);
+        addProductBtn.addEventListener('click', () => openProductModal());
+        closeModal.addEventListener('click', () => adminModal.classList.add('hidden'));
+        productForm.addEventListener('submit', saveProduct);
+        closeDetailModal.addEventListener('click', () => productDetailModal.classList.add('hidden'));
+        cartBtn.addEventListener('click', () => cartModal.classList.remove('hidden'));
+        closeCart.addEventListener('click', () => cartModal.classList.add('hidden'));
+        document.getElementById('checkoutBtn').addEventListener('click', checkout);
+        document.getElementById('titleSize').addEventListener('input', updateTitleSize);
+        document.getElementById('heroImageSize').addEventListener('input', updateHeroImageSize);
+        document.getElementById('changeHeroImage').addEventListener('click', changeHeroImage);
+        document.getElementById('uploadFontBtn').addEventListener('click', () => document.getElementById('fontUpload').click());
+        document.getElementById('fontUpload').addEventListener('change', handleFontUpload);
+        mediaLinks.addEventListener('input', previewMedia);
+        document.getElementById('prevMedia').addEventListener('click', () => navigateMedia(-1));
+        document.getElementById('nextMedia').addEventListener('click', () => navigateMedia(1));
+        document.getElementById('addToCartBtn').addEventListener('click', addToCart);
+        document.getElementById('editProductBtn').addEventListener('click', editCurrentProduct);
+        document.getElementById('deleteProductBtn').addEventListener('click', deleteProduct);
+        document.getElementById('addEmbedBtn').addEventListener('click', () => document.getElementById('embedModal').classList.remove('hidden'));
+        document.getElementById('closeEmbedModal').addEventListener('click', () => document.getElementById('embedModal').classList.add('hidden'));
+        document.getElementById('saveEmbed').addEventListener('click', saveEmbed);
+
+        // Editable content save
+        ['siteTitle', 'companyName', 'heroTitle', 'heroDesc'].forEach(id => {
+            document.getElementById(id).addEventListener('blur', saveData);
+        });
+    }
+
+    // Admin Mode
+    function checkAdminPassword() {
+        const savedAuth = sessionStorage.getItem('admin_auth');
+        if (savedAuth === 'true') {
+            enableAdminMode();
+        }
+    }
+
+    function toggleAdminMode() {
+        if (!isAdmin) {
+            const password = prompt('Ingresa la contraseña de administrador:');
+            if (password === 'admin123') {
+                sessionStorage.setItem('admin_auth', 'true');
+                enableAdminMode();
+            } else if (password !== null) {
+                alert('Contraseña incorrecta');
+            }
+        } else {
+            disableAdminMode();
+        }
+    }
+
+    function enableAdminMode() {
+        isAdmin = true;
+        document.body.classList.add('admin-mode');
+        adminText.textContent = 'Salir Admin';
+        document.querySelectorAll('.editable').forEach(el => el.contentEditable = true);
+    }
+
+    function disableAdminMode() {
+        isAdmin = false;
+        document.body.classList.remove('admin-mode');
+        adminText.textContent = 'Admin';
+        document.querySelectorAll('.editable').forEach(el => el.contentEditable = false);
+        sessionStorage.removeItem('admin_auth');
+        adminModal.classList.add('hidden');
+    }
+
+    // Product Management
+    function openProductModal(product = null) {
+        const modalTitle = document.getElementById('modalTitle');
+        const deleteBtn = document.getElementById('deleteProductBtn');
+        
+        if (product) {
+            modalTitle.textContent = 'Editar Producto';
+            document.getElementById('productId').value = product.id;
+            document.getElementById('productTitle').value = product.title;
+            document.getElementById('titleFont').value = product.titleFont || 'Poppins';
+            document.getElementById('productCategory').value = product.category;
+            document.getElementById('productStock').value = product.stock;
+            document.getElementById('priceNormal').value = product.priceNormal;
+            document.getElementById('priceOffer').value = product.priceOffer || '';
+            document.getElementById('priceWholesale').value = product.priceWholesale || '';
+            document.getElementById('productDescription').value = product.description;
+            document.getElementById('mediaLinks').value = product.media.join('\n');
+            deleteBtn.classList.remove('hidden');
+            previewMedia();
+        } else {
+            modalTitle.textContent = 'Agregar Producto';
+            productForm.reset();
+            document.getElementById('productId').value = '';
+            deleteBtn.classList.add('hidden');
+            mediaPreview.innerHTML = '';
+        }
+        
+        adminModal.classList.remove('hidden');
+    }
+
+    function saveProduct(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('productId').value;
+        const mediaArray = document.getElementById('mediaLinks').value
+            .split('\n')
+            .map(url => url.trim())
+            .filter(url => url.length > 0);
+
+        const productData = {
+            id: id ? parseInt(id) : Date.now(),
+            title: document.getElementById('productTitle').value,
+            titleFont: document.getElementById('titleFont').value,
+            category: document.getElementById('productCategory').value,
+            stock: parseInt(document.getElementById('productStock').value),
+            priceNormal: parseFloat(document.getElementById('priceNormal').value),
+            priceOffer: parseFloat(document.getElementById('priceOffer').value) || null,
+            priceWholesale: parseFloat(document.getElementById('priceWholesale').value) || null,
+            description: document.getElementById('productDescription').value,
+            media: mediaArray
+        };
+
+        if (id) {
+            const index = products.findIndex(p => p.id === parseInt(id));
+            products[index] = productData;
+        } else {
+            products.push(productData);
+        }
+
+        saveData();
+        renderProducts();
+        renderCategories();
+        adminModal.classList.add('hidden');
+    }
+
+    function deleteProduct() {
+        if (confirm('¿Estás segura de eliminar este producto?')) {
+            const id = parseInt(document.getElementById('productId').value);
+            products = products.filter(p => p.id !== id);
+            saveData();
+            renderProducts();
+            adminModal.classList.add('hidden');
+            productDetailModal.classList.add('hidden');
+        }
+    }
+
+    function renderProducts(filterCategory = 'all') {
+        const filtered = filterCategory === 'all' 
+            ? products 
+            : products.filter(p => p.category === filterCategory);
+
+        if (filtered.length === 0) {
+            productsGrid.innerHTML = '';
+            document.getElementById('emptyState').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('emptyState').classList.add('hidden');
+        
+        productsGrid.innerHTML = filtered.map(product => {
+            const isOutOfStock = product.stock === 0;
+            const displayPrice = product.priceOffer || product.priceNormal;
+            const hasDiscount = product.priceOffer && product.priceOffer < product.priceNormal;
+
+            return `
+                <div class="product-card glass rounded-2xl overflow-hidden shadow-lg cursor-pointer" onclick="openProductDetail(${product.id})">
+                    <div class="relative aspect-square bg-gray-100">
+                        ${product.media[0] ? getMediaElement(product.media[0], 'w-full h-full object-cover') : '<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fa-solid fa-image text-4xl"></i></div>'}
+                        ${isOutOfStock ? '<div class="out-of-stock-overlay absolute inset-0 flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-2 rounded-full font-bold">Sin Stock</span></div>' : ''}
+                        ${hasDiscount ? '<div class="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold">- ' + Math.round((1 - product.priceOffer/product.priceNormal) * 100) + '%</div>' : ''}
+                        ${isAdmin ? '<button class="admin-only absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg" onclick="event.stopPropagation(); openProductModal(' + JSON.stringify(product).replace(/"/g, '&quot;') + ')"><i class="fa-solid fa-pen text-pink-500 text-sm"></i></button>' : ''}
+                    </div>
+                    <div class="p-4">
+                        <div class="category-badge inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2">${product.category}</div>
+                        <h3 class="font-bold text-gray-800 mb-2 line-clamp-2" style="font-family: ${product.titleFont}, sans-serif">${product.title}</h3>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-bold text-pink-600">$${displayPrice.toFixed(2)}</span>
+                            ${hasDiscount ? '<span class="text-sm text-gray-400 line-through">$' + product.priceNormal.toFixed(2) + '</span>' : ''}
+                        </div>
+                        ${product.priceWholesale ? '<div class="text-xs text-gray-500 mt-1">Mayorista: $' + product.priceWholesale.toFixed(2) + '</div>' : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function getMediaElement(url, className = '') {
+        if (url.match(/\.(mp4|webm|ogg)$/i)) {
+            return `<video src="${url}" class="${className}" muted loop></video>`;
+        } else {
+            return `<img src="${url}" class="${className}" alt="Producto" onerror="this.src='https://via.placeholder.com/400x400?text=Error'">`;
+        }
+    }
+
+    function openProductDetail(productId) {
+        currentProduct = products.find(p => p.id === productId);
+        if (!currentProduct) return;
+
+        currentMediaIndex = 0;
+        updateProductDetail();
+        productDetailModal.classList.remove('hidden');
+    }
+
+    function updateProductDetail() {
+        if (!currentProduct) return;
+
+        document.getElementById('detailCategory').textContent = currentProduct.category;
+        document.getElementById('detailTitle').textContent = currentProduct.title;
+        document.getElementById('detailTitle').style.fontFamily = `${currentProduct.titleFont}, sans-serif`;
+        document.getElementById('detailDescription').innerHTML = currentProduct.description;
+        
+        const displayPrice = currentProduct.priceOffer || currentProduct.priceNormal;
+        document.getElementById('normalPrice').textContent = `$${currentProduct.priceNormal.toFixed(2)}`;
+        document.getElementById('normalPrice').className = currentProduct.priceOffer ? 'text-xl text-gray-400 line-through' : 'text-2xl font-bold text-gray-800';
+        
+        document.getElementById('offerPrice').textContent = currentProduct.priceOffer ? `$${currentProduct.priceOffer.toFixed(2)} OFERTA` : '';
+        document.getElementById('offerPrice').style.display = currentProduct.priceOffer ? 'block' : 'none';
+        
+        document.getElementById('wholesalePrice').textContent = currentProduct.priceWholesale ? `Precio Mayorista: $${currentProduct.priceWholesale.toFixed(2)}` : '';
+        
+        const stockText = currentProduct.stock > 0 ? `${currentProduct.stock} unidades disponibles` : 'Sin stock';
+        document.getElementById('stockText').textContent = stockText;
+        document.getElementById('stockText').className = currentProduct.stock === 0 ? 'text-red-500 font-semibold' : 'text-green-600';
+        
+        const addBtn = document.getElementById('addToCartBtn');
+        addBtn.disabled = currentProduct.stock === 0;
+        addBtn.innerHTML = currentProduct.stock === 0 ? '<i class="fa-solid fa-ban"></i> Sin Stock' : '<i class="fa-solid fa-cart-plus"></i> Agregar al Carrito';
+
+        // Media gallery
+        if (currentProduct.media.length > 0) {
+            const media = currentProduct.media[currentMediaIndex];
+            document.getElementById('mainMediaContainer').innerHTML = getMediaElement(media, 'w-full h-full object-contain');
+            
+            // Thumbnails
+            document.getElementById('thumbnails').innerHTML = currentProduct.media.map((url, i) => `
+                <div class="thumbnail aspect-square rounded-lg overflow-hidden cursor-pointer ${i === currentMediaIndex ? 'active' : ''}" onclick="setMediaIndex(${i})">
+                    ${getMediaElement(url, 'w-full h-full object-cover')}
+                </div>
+            `).join('');
+        }
+    }
+
+    function setMediaIndex(index) {
+        currentMediaIndex = index;
+        updateProductDetail();
+    }
+
+    function navigateMedia(direction) {
+        if (!currentProduct || currentProduct.media.length === 0) return;
+        currentMediaIndex = (currentMediaIndex + direction + currentProduct.media.length) % currentProduct.media.length;
+        updateProductDetail();
+    }
+
+    function editCurrentProduct() {
+        productDetailModal.classList.add('hidden');
+        openProductModal(currentProduct);
+    }
+
+    // Categories
+    function renderCategories() {
+        const categories = [...new Set(products.map(p => p.category))];
+        const filtersContainer = document.getElementById('categoryFilters');
+        
+        filtersContainer.innerHTML = categories.map(cat => `
+            <button class="category-filter px-6 py-2 rounded-full bg-white hover:bg-pink-100 font-semibold text-sm transition" data-category="${cat}">
+                ${cat}
+            </button>
+        `).join('');
+
+        document.querySelectorAll('.category-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.category-filter').forEach(b => b.classList.remove('active', 'category-badge'));
+                e.target.classList.add('active', 'category-badge');
+                renderProducts(e.target.dataset.category);
+            });
+        });
+    }
+
+    // Cart Management
+    function addToCart() {
+        if (!currentProduct || currentProduct.stock === 0) return;
+
+        const existingItem = cart.find(item => item.id === currentProduct.id);
+        
+        if (existingItem) {
+            if (existingItem.quantity < currentProduct.stock) {
+                existingItem.quantity++;
+            } else {
+                alert('No hay más stock disponible');
+                return;
+            }
+        } else {
+            cart.push({
+                id: currentProduct.id,
+                title: currentProduct.title,
+                price: currentProduct.priceOffer || currentProduct.priceNormal,
+                image: currentProduct.media[0],
+                quantity: 1,
+                maxStock: currentProduct.stock
+            });
+        }
+
+        updateCartUI();
+        productDetailModal.classList.add('hidden');
+        
+        // Animation
+        cartCount.classList.remove('cart-badge');
+        void cartCount.offsetWidth;
+        cartCount.classList.add('cart-badge');
+    }
+
+    function updateCartUI() {
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        cartCount.textContent = totalItems;
+        cartCount.classList.toggle('hidden', totalItems === 0);
+
+        const cartItems = document.getElementById('cartItems');
+        const cartEmpty = document.getElementById('cartEmpty');
+        const cartFooter = document.getElementById('cartFooter');
+
+        if (cart.length === 0) {
+            cartItems.innerHTML = '';
+            cartEmpty.classList.remove('hidden');
+            cartFooter.classList.add('hidden');
+        } else {
+            cartEmpty.classList.add('hidden');
+            cartFooter.classList.remove('hidden');
+            
+            cartItems.innerHTML = cart.map(item => `
+                <div class="flex gap-4 bg-pink-50 rounded-xl p-4">
+                    <div class="w-20 h-20 rounded-lg overflow-hidden bg-white flex-shrink-0">
+                        ${getMediaElement(item.image, 'w-full h-full object-cover')}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-800">${item.title}</h4>
+                        <p class="text-pink-600 font-bold">$${item.price.toFixed(2)}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <button onclick="updateCartQuantity(${item.id}, -1)" class="bg-white hover:bg-pink-100 w-8 h-8 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-minus text-xs"></i>
+                            </button>
+                            <span class="w-8 text-center font-semibold">${item.quantity}</span>
+                            <button onclick="updateCartQuantity(${item.id}, 1)" class="bg-white hover:bg-pink-100 w-8 h-8 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                            </button>
+                            <button onclick="removeFromCart(${item.id})" class="ml-auto text-red-500 hover:text-red-700">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+        }
+    }
+
+    function updateCartQuantity(productId, change) {
+        const item = cart.find(i => i.id === productId);
+        if (!item) return;
+
+        item.quantity += change;
+        
+        if (item.quantity <= 0) {
+            removeFromCart(productId);
+        } else if (item.quantity > item.maxStock) {
+            item.quantity = item.maxStock;
+            alert('No hay más stock disponible');
+        }
+        
+        updateCartUI();
+    }
+
+    function removeFromCart(productId) {
+        cart = cart.filter(item => item.id !== productId);
+        updateCartUI();
+    }
+
+    function checkout() {
+        if (cart.length === 0) return;
+        
+        let message = '¡Hola! Quiero hacer el siguiente pedido:\n\n';
+        cart.forEach(item => {
+            message += `• ${item.title} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}\n`;
+        });
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        message += `\nTotal: $${total.toFixed(2)}`;
+        
+        alert('Pedido generado:\n\n' + message + '\n\nEn producción, esto se enviaría por WhatsApp o Email');
+        cart = [];
+        updateCartUI();
+        cartModal.classList.add('hidden');
+    }
+
+    // Media Preview
+    function previewMedia() {
+        const urls = mediaLinks.value.split('\n').map(url => url.trim()).filter(url => url);
+        mediaPreview.innerHTML = urls.map(url => `
+            <div class="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                ${getMediaElement(url, 'w-full h-full object-cover')}
+            </div>
+        `).join('');
+    }
+
+    // Customization Functions
+    function updateTitleSize(e) {
+        document.getElementById('siteTitle').style.fontSize = e.target.value + 'px';
+    }
+
+    function updateHeroImageSize(e) {
+        document.getElementById('heroImage').style.maxWidth = e.target.value + 'px';
+    }
+
+    function changeHeroImage() {
+        const url = prompt('Ingresa la URL de la imagen (Google Drive, ImgUr, etc):');
+        if (url) {
+            document.getElementById('heroImage').src = url;
+            saveData();
+        }
+    }
+
+    function handleFontUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const fontFace = new FontFace('CustomFont', `url(${event.target.result})`);
+            fontFace.load().then(() => {
+                document.fonts.add(fontFace);
+                customFontLoaded = true;
+                alert('Fuente cargada exitosamente. Ahora puedes seleccionarla en "Estilo de Letra"');
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Embeds Management
+    function renderEmbeds() {
+        const grid = document.getElementById('embedGrid');
+        grid.innerHTML = embeds.slice(0, 16).map((url, i) => `
+            <div class="relative group">
+                <iframe src="${url}" frameborder="0" scrolling="no" allowtransparency="true"></iframe>
+                ${isAdmin ? `<button onclick="removeEmbed(${i})" class="admin-only absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+            </div>
+        `).join('') + Array(Math.max(0, 16 - embeds.length)).fill(0).map(() => `
+            <div class="aspect-[9/16] bg-pink-100 rounded-2xl flex items-center justify-center text-pink-300">
+                <i class="fa-solid fa-plus text-4xl"></i>
+            </div>
+        `).join('');
+    }
+
+    function saveEmbed() {
+        const url = document.getElementById('embedUrl').value.trim();
+        if (url) {
+            embeds.push(url);
+            saveData();
+            renderEmbeds();
+            document.getElementById('embedModal').classList.add('hidden');
+            document.getElementById('embedUrl').value = '';
+        }
+    }
+
+    function removeEmbed(index) {
+        if (confirm('¿Eliminar este video?')) {
+            embeds.splice(index, 1);
+            saveData();
+            renderEmbeds();
+        }
+    }
+
+    // Global functions for onclick
+    window.openProductDetail = openProductDetail;
+    window.openProductModal = openProductModal;
+    window.updateCartQuantity = updateCartQuantity;
+    window.removeFromCart = removeFromCart;
+    window.setMediaIndex = setMediaIndex;
+    window.removeEmbed = removeEmbed;
+</script>
+</body>
+</html>
